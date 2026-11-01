@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#eaf6f8">
+<meta name="theme-color" content="#eaf6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1d22" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <title>جرعة تقنية | إعدادات HTTP Custom وشروحات تقنية للمغرب</title>
 <meta name="description" content="حمّل أحدث ملفات إعدادات HTTP Custom لشبكات Inwi وIAM وOrange وWIN، مع شروحات التطبيقات والربح من الإنترنت بالدارجة المغربية.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -46,6 +48,19 @@
   --text:#17343b;        /* نص رئيسي ناعم بدل الغامق الحاد */
   --muted:#4a6b73;
 }
+@media (prefers-color-scheme: dark){
+  :root{--soft:#1d3239;--bg:#0f1d22;--card:#16272d;--line:#24383f;--text:#e6f3f6;--muted:#9bb6bd}
+}
+.upd{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto 18px;width:max-content;max-width:100%;
+  padding:6px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:13px}
+.upd::before{content:"";width:8px;height:8px;border-radius:50%;background:#2fbf71;flex:none}
+.badge{display:inline-block;margin-inline-start:8px;padding:1px 9px;border-radius:99px;background:#ff6b4a;color:#fff;
+  font-size:11.5px;font-weight:800;vertical-align:middle;line-height:1.6}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin:20px 2px 8px;font-weight:800;font-size:15.5px}
+.sec small{color:var(--muted);font-weight:400;font-size:12.5px}
+.more{width:100%;height:42px;margin:-2px 0 6px;border-radius:12px;border:1px dashed var(--line);background:transparent;
+  color:var(--muted);font:inherit;font-size:13.5px;cursor:pointer}
+.link small.date{font-size:12px;opacity:.85}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
 html{background:var(--bg);-webkit-text-size-adjust:100%}
 body{font-family:"Cairo",system-ui,sans-serif;color:var(--text);min-height:100dvh;font-size:16px;
@@ -103,6 +118,8 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:28px}
   <p class="bio">إعدادات HTTP Custom لشبكات المغرب، شروحات التطبيقات، والربح من الإنترنت.</p>
 </header>
 
+<p class="upd" id="upd" hidden></p>
+
 <nav class="social" id="social" aria-label="حساباتنا"></nav>
 
 <a class="link hero" id="hero" href="#">
@@ -135,18 +152,23 @@ const SOCIALS = [
 /* ============ 2) الزر الرئيسي ============ */
 const HERO_URL = "https://chat.whatsapp.com/ByngXqH2egLCPwZBU9tLal";
 
-/* ============ 3) الشروحات: سطر واحد لكل شرح ============
-   الصيغة: ["التصنيف","العنوان","وصف قصير","الرابط"]
-   تصنيف جديد يظهر تلقائياً كزر. الأيقونة موحدة. */
-const TUTORIALS = [
-  ["HTTP Custom","شرح HTTP Custom للمبتدئين","التثبيت والاستيراد والتشغيل","#"],
-  ["HTTP Custom","إعدادات Inwi","أحدث ملف إعدادات","#"],
-  ["HTTP Custom","إعدادات IAM","أحدث ملف إعدادات","#"],
-  ["HTTP Custom","إعدادات Orange","أحدث ملف إعدادات","#"],
-  ["HTTP Custom","إعدادات WIN","أحدث ملف إعدادات","#"],
-  ["تطبيقات","شرح تطبيق جديد","استبدل هذا السطر بشرحك","#"],
-  ["الربح من الإنترنت","أول خطوات الربح أونلاين","استبدل هذا السطر بشرحك","#"]
-];
+/* ============ 3) إعدادات عامة ============
+   NEW_DAYS: كم يوماً تبقى شارة "جديد" ظاهرة
+   GOATCOUNTER: اسم حسابك في goatcounter.com (اتركه فارغاً لإيقاف الإحصائيات) */
+const NEW_DAYS = 7;
+const GOATCOUNTER = "";
+
+/* ============ التدوينات تُجلب تلقائياً من المدونة ============
+   BLOG: رابط المدونة | PER_SECTION: عدد التدوينات الظاهرة في كل تصنيف قبل زر "عرض الكل"
+   HIDE_LABELS: تصنيفات لا تريد إظهارها، مثل ["بدون عنوان"] */
+const BLOG = "https://technical-dose.blogspot.com";
+const PER_SECTION = 5;
+const HIDE_LABELS = [];
+
+/* ============ 4) روابط إضافية يدوية (اختياري) ============
+   تُقرأ من links.json وتُضاف فوق تدوينات المدونة، مثل رابط فيديو أو موقع خارجي.
+   الصيغة: {"cat":"التصنيف","title":"العنوان","url":"الرابط","date":"2026-11-01"} */
+const FALLBACK = {"tutorials":[]};
 /* ================================================== */
 
 const P = {
@@ -159,38 +181,118 @@ const LINK_ICON = '<path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-
 const GLOBE = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>';
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = d => String(d).replaceAll("-", "/");
+const isNew = d => { const n = (Date.now() - new Date(d)) / 864e5; return d && n >= -1 && n <= NEW_DAYS; };
 
 $("hero").href = HERO_URL;
+$("hero").dataset.t = "whatsapp-group";
 $("social").innerHTML = SOCIALS.map(([n,u]) => {
   const icon = P[n] ? `<svg viewBox="0 0 24 24"><path d="${P[n]}"/></svg>`
     : `<svg class="ln" viewBox="0 0 24 24">${n === "blog" ? GLOBE : LINK_ICON}</svg>`;
-  return `<a href="${esc(u)}" aria-label="${esc(n)}" rel="noopener">${icon}</a>`;
+  return `<a href="${esc(u)}" data-t="${esc(n)}" aria-label="${esc(n)}" rel="noopener">${icon}</a>`;
 }).join("");
 
 const ICON = `<svg viewBox="0 0 24 24">${LINK_ICON}</svg>`;
-const cats = ["الكل", ...new Set(TUTORIALS.map(x => x[0]))];
+const norm = x => ({cats: [x.cat || "أخرى"], title: x.title, url: x.url, date: x.date || ""});
+let manual = FALLBACK.tutorials.map(norm), blog = [], T = [], groups = [];
 let active = "الكل";
+const expanded = new Set();
+
+/* جلب التدوينات عبر JSONP من تغذية Blogger الرسمية */
+function loadBlog(){
+  return new Promise((ok, fail) => {
+    const cb = "__blogger" + Date.now(), s = document.createElement("script");
+    const done = () => { delete window[cb]; s.remove(); clearTimeout(t); };
+    const t = setTimeout(() => { done(); fail(); }, 12000);
+    window[cb] = d => { done(); ok(d); };
+    s.onerror = () => { done(); fail(); };
+    s.src = `${BLOG}/feeds/posts/summary?alt=json-in-script&max-results=500&callback=${cb}`;
+    document.head.appendChild(s);
+  });
+}
+function parseBlog(d){
+  return ((d.feed && d.feed.entry) || []).map(e => {
+    const link = (e.link || []).find(l => l.rel === "alternate");
+    const cats = (e.category || []).map(c => c.term).filter(c => !HIDE_LABELS.includes(c));
+    return {cats: cats.length ? cats : ["أخرى"], title: e.title.$t,
+            url: link ? link.href : BLOG, date: (e.published.$t || "").slice(0, 10)};
+  });
+}
+
+const byDate = (a, b) => (b.date || "").localeCompare(a.date || "");
+function group(rows){
+  const m = new Map();
+  rows.forEach(r => r.cats.forEach(c => { if (!m.has(c)) m.set(c, []); m.get(c).push(r); }));
+  /* التصنيف الذي فيه أحدث تدوينة يظهر أولاً */
+  return [...m].map(([c, list]) => ({c, list: list.sort(byDate)})).sort((a, b) => byDate(a.list[0], b.list[0]));
+}
+
+function refresh(){
+  T = [...blog, ...manual];
+  groups = group(T);
+  if (active !== "الكل" && !groups.some(g => g.c === active)) active = "الكل";
+  $("chips").innerHTML = ["الكل", ...groups.map(g => g.c)].map(c =>
+    `<button class="chip" aria-pressed="${c === active}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  const latest = T.map(x => x.date).sort().pop();
+  $("upd").hidden = !latest;
+  if (latest) $("upd").textContent = "آخر تحديث: " + fmt(latest);
+  render();
+}
+
+const item = x =>
+  `<a class="link" href="${esc(x.url)}" data-t="${esc(x.title)}"><span class="ic">${ICON}</span>
+   <span class="txt"><b>${esc(x.title)}${isNew(x.date) ? '<span class="badge">جديد</span>' : ""}</b>
+   ${x.date ? `<small class="date">${fmt(esc(x.date))}</small>` : ""}</span><span class="go">‹</span></a>`;
 
 function render(){
   const q = $("q").value.trim().toLowerCase();
-  const rows = TUTORIALS.filter(x =>
-    (active === "الكل" || x[0] === active) && x.join(" ").toLowerCase().includes(q));
-  $("list").innerHTML = rows.length ? rows.map(x =>
-    `<a class="link" href="${esc(x[3])}"><span class="ic">${ICON}</span>
-     <span class="txt"><b>${esc(x[1])}</b><small>${esc(x[2])}</small></span><span class="go">‹</span></a>`).join("")
-    : `<p class="empty">ما لقينا شرح بهاد الاسم</p>`;
+  let out = "";
+  groups.forEach(g => {
+    if (active !== "الكل" && g.c !== active) return;
+    const rows = q ? g.list.filter(x => (x.title + " " + g.c).toLowerCase().includes(q)) : g.list;
+    if (!rows.length) return;
+    const all = q || active !== "الكل" || expanded.has(g.c);
+    const shown = all ? rows : rows.slice(0, PER_SECTION);
+    out += `<div class="sec"><span>${esc(g.c)}</span><small>${rows.length}</small></div>` + shown.map(item).join("");
+    if (!all && rows.length > PER_SECTION)
+      out += `<button class="more" data-more="${esc(g.c)}">عرض الكل (${rows.length})</button>`;
+  });
+  $("list").innerHTML = out || `<p class="empty">ما لقينا شرح بهاد الاسم</p>`;
 }
-$("chips").innerHTML = cats.map(c =>
-  `<button class="chip" aria-pressed="${c === active}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+
 $("chips").addEventListener("click", e => {
-  const b = e.target.closest(".chip"); if(!b) return;
+  const b = e.target.closest(".chip"); if (!b) return;
   active = b.dataset.c;
   document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === b));
   render();
 });
+$("list").addEventListener("click", e => {
+  const b = e.target.closest("[data-more]"); if (!b) return;
+  expanded.add(b.dataset.more); render();
+});
 $("q").addEventListener("input", render);
-render();
+
+refresh();
+fetch("links.json", {cache: "no-cache"})
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(j => { if (Array.isArray(j.tutorials)) { manual = j.tutorials.map(norm); refresh(); } })
+  .catch(() => {});
+loadBlog().then(d => { blog = parseBlog(d); refresh(); }).catch(() => {});
+
+/* إحصائيات خفيفة بدون كوكيز */
+if (GOATCOUNTER) {
+  const g = document.createElement("script");
+  g.async = true;
+  g.dataset.goatcounter = `https://${GOATCOUNTER}.goatcounter.com/count`;
+  g.src = "//gc.zgo.at/count.js";
+  document.head.appendChild(g);
+  document.addEventListener("click", e => {
+    const a = e.target.closest("a[data-t]");
+    if (a && window.goatcounter && window.goatcounter.count)
+      window.goatcounter.count({path: "click/" + a.dataset.t, title: a.dataset.t, event: true});
+  });
+}
 </script>
 </body>
 </html>
